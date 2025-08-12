@@ -133,10 +133,21 @@ textarea,input,select{width:100%; background:#fff; color:var(--text); border:1px
 .nav-item{display:flex; flex-direction:column; align-items:center; gap:2px; color:#ffffffcc; background:transparent; border:0}
 .nav-item.active{color:#ffffff}
 .nav-item .icon{width:22px; height:22px}
-.icon-mask{width:22px; height:22px; display:inline-block; background-color:#ffffff; -webkit-mask:url('./dangan.svg') center/contain no-repeat; mask:url('./dangan.svg') center/contain no-repeat}
-.icon-mask-hecha{width:22px; height:22px; display:inline-block; background-color:#ffffff; -webkit-mask:url('./hecha.svg') center/contain no-repeat; mask:url('./hecha.svg') center/contain no-repeat}
-.icon-mask-dingyue{width:22px; height:22px; display:inline-block; background-color:#ffffff; -webkit-mask:url('./dingyue.svg') center/contain no-repeat; mask:url('./dingyue.svg') center/contain no-repeat}
-.nav-item.active .icon-mask,.nav-item.active .icon-mask-hecha,.nav-item.active .icon-mask-dingyue{background-color:#ffffff}
+
+/* 底部导航栏图标样式 - 白色 */
+.bottom-nav .nav-item .icon img {
+  width: 22px;
+  height: 22px;
+  display: block;
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+/* 确保底部导航栏图标正确显示 */
+.bottom-nav .nav-item .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .modal{position:fixed; inset:0; display:none}
 .modal .modal-backdrop{position:absolute; inset:0; background:rgba(0,0,0,0.25)}
@@ -147,7 +158,271 @@ textarea,input,select{width:100%; background:#fff; color:var(--text); border:1px
 .modal .modal-footer{display:flex; justify-content:flex-end}
 .modal.show{display:block}
 
+/* 观点详情浮窗样式 - 全屏模式 */
+.modal.detail-modal .modal-content {
+  top: 0;
+  bottom: 0;
+  border-radius: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.modal.detail-modal .modal-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg-elev);
+  backdrop-filter: saturate(1.2) blur(6px);
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
+  margin: 0;
+  z-index: 5;
+}
+
+.modal.detail-modal .modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+}
+
+.modal.detail-modal .back-btn {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.modal.detail-modal .back-btn:hover {
+  background: var(--chip);
+  color: var(--primary);
+}
+
+.modal.detail-modal .modal-body {
+  padding: 16px;
+  margin: 0;
+}
+
+.modal.detail-modal .modal-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-elev);
+  backdrop-filter: saturate(1.2) blur(6px);
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  margin: 0;
+  z-index: 5;
+}
+
+/* 观点详情浮窗样式 */
+.detail-content h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 20px 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary);
+  display: inline-block;
+}
+
+.detail-content h4:first-child {
+  margin-top: 0;
+}
+
+.conclusion-section,
+.image-section,
+.evidence-section,
+.appendix-section {
+  margin-bottom: 24px;
+}
+
+.conclusion-card {
+  transition: all 0.2s ease;
+}
+
+.conclusion-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.evidence-item {
+  transition: all 0.2s ease;
+}
+
+.evidence-item:hover {
+  transform: translateX(4px);
+  border-left: 3px solid var(--primary) !important;
+}
+
+.appendix-item {
+  transition: all 0.2s ease;
+}
+
+.appendix-item:hover {
+  background: #f1f5f9 !important;
+  border-color: var(--primary) !important;
+}
+
+.opinion-image {
+  transition: all 0.3s ease;
+}
+
+.opinion-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+}
+
+/* 查个究竟页面样式 */
+.check-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 0 20px;
+  margin-top: 0;
+  background: #ffffff;
+}
+
+.check-prompt {
+  text-align: center;
+  margin-bottom: 60px;
+  margin-top: 0;
+}
+
+.check-prompt h2 {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.check-input-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  background: #F7F7F7;
+  border: none;
+  border-radius: 50px;
+  padding: 8px;
+  gap: 0;
+  box-shadow: none;
+  position: relative;
+}
+
+.upload-btn,
+.send-btn {
+  background: #ffffff;
+  border: none;
+  color: #000000;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.upload-btn img,
+.send-btn img {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* 输入框左侧按钮图标 - 黑色 */
+.upload-btn img {
+  filter: brightness(0) saturate(100%);
+}
+
+/* 输入框右侧按钮图标 - 白色 */
+.send-btn img {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+.upload-btn:hover,
+.send-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.send-btn {
+  background: #000000;
+  color: #ffffff;
+}
+
+.send-btn:hover {
+  background: #333333;
+}
+
+.check-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 14px 20px;
+  font-size: 16px;
+  color: var(--text);
+  outline: none;
+  min-height: 44px;
+  width: 100%;
+}
+
+.check-input::placeholder {
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+.check-input:focus {
+  background: transparent;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .check-prompt h2 {
+    font-size: 28px;
+  }
+  
+  .check-input-container {
+    max-width: 100%;
+    margin: 0 16px;
+  }
+  
+  .check-prompt {
+    margin-bottom: 50px;
+  }
+}
+
+/* 旋转动画 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 确保模态框在全屏模式下正确显示 */
+.modal.detail-modal {
+  z-index: 9999;
+}
+
+.modal.detail-modal .modal-content {
+  z-index: 10000;
+}
+
 @media (min-width: 680px){
   #app{max-width:480px; margin:0 auto; border-left:1px solid var(--border); border-right:1px solid var(--border)}
   .bottom-nav{left:50%; right:auto; transform:translateX(-50%); width:480px}
+  .modal .modal-content{left:50%; right:auto; transform:translateX(-50%); width:480px}
 } 
