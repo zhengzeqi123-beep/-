@@ -1,5 +1,5 @@
 (function(){
-  const Views = { Archive: 'archive', Check: 'check', Subs: 'subs' };
+  const Views = { Archive: 'archive', Check: 'check', Subs: 'subs', Discover: 'discover' };
   const Verdict = {
     TRUE: '真实', PARTIAL: '部分真实', FALSE: '虚假', UNCERTAIN: '无法证伪'
   };
@@ -30,7 +30,7 @@
     {
       id: 'a2',
       title: '某品牌手机信号差是基带问题？',
-      summary: '不同地区与运营商表现差异较大，部分场景确有影响，但非单一“基带问题”。',
+      summary: '不同地区与运营商表现差异较大，部分场景确有影响，但非单一"基带问题"。',
       verdict: Verdict.PARTIAL,
       category: '科技',
       heat: 86,
@@ -41,8 +41,8 @@
     },
     {
       id: 'a3',
-      title: '“甲醛浑身都是坏处”，新家具一定要晾半年？',
-      summary: '甲醛长期超标有害，规范通风有用，但无需“一刀切”半年，视检测值而定。',
+      title: '"甲醛浑身都是坏处"，新家具一定要晾半年？',
+      summary: '甲醛长期超标有害，规范通风有用，但无需"一刀切"半年，视检测值而定。',
       verdict: Verdict.PARTIAL,
       category: '健康',
       heat: 74,
@@ -53,8 +53,8 @@
     },
     {
       id: 'a4',
-      title: '吃糖会“喂养”癌细胞？',
-      summary: '夸大。糖类为人体能量来源，关键在总能量与代谢健康，非直接“喂养”。',
+      title: '吃糖会"喂养"癌细胞？',
+      summary: '夸大。糖类为人体能量来源，关键在总能量与代谢健康，非直接"喂养"。',
       verdict: Verdict.FALSE,
       category: '健康',
       heat: 92,
@@ -89,7 +89,7 @@
     },
     {
       id: 'a7',
-      title: '“一天八杯水”是硬性标准？',
+      title: '"一天八杯水"是硬性标准？',
       summary: '并非必须，需求因人而异，口渴即饮、参考尿色。',
       verdict: Verdict.UNCERTAIN,
       category: '健康',
@@ -99,7 +99,7 @@
     },
     {
       id: 'a8',
-      title: '“股票只涨不跌”的新周期？',
+      title: '"股票只涨不跌"的新周期？',
       summary: '明显不实，市场有波动与风险，不存在只涨不跌。',
       verdict: Verdict.FALSE,
       category: '财经',
@@ -228,6 +228,12 @@
   document.getElementById('refreshHotBtn').addEventListener('click', ()=>renderHot(getFilteredItems(), true));
 
   function getFilteredItems(){
+    // 确保archiveItems存在且有数据
+    if (!archiveItems || archiveItems.length === 0) {
+      console.warn('archiveItems 数据为空');
+      return [];
+    }
+    
     return archiveItems
       .filter(it=> state.category==='全部' || it.category===state.category)
       .filter(it=> {
@@ -238,18 +244,46 @@
   }
 
   function renderArchive(){
+    console.log('renderArchive 被调用，当前tab:', state.activeTab);
+    console.log('archiveItems 数据:', archiveItems);
+    
     renderChips();
     const filtered = getFilteredItems();
+    console.log('过滤后的数据:', filtered);
+    
     if(state.activeTab==='tab-discover'){
       renderGrid(discoverGridEl, filtered.sort((a,b)=> b.heat - a.heat));
+    } else {
+      // 确保在推荐tab时渲染热门观点榜
+      console.log('渲染热门观点榜，数据:', filtered);
+      renderHot(filtered);
     }
-    renderHot(filtered);
   }
 
   function renderHot(items, shuffle=false){
+    console.log('renderHot 被调用，参数:', items);
+    console.log('hotListEl 元素:', hotListEl);
+    
     const pool = items && items.length ? items : archiveItems;
+    console.log('使用的数据池:', pool);
+    
     let top = [...pool].sort((a,b)=>b.heat-a.heat).slice(0,6);
+    console.log('排序后的前6个:', top);
+    
     if(shuffle) top.sort(()=>Math.random()-0.5);
+    
+    if (top.length === 0) {
+      console.log('没有数据，显示空状态');
+      hotListEl.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-dim);">
+          <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
+          <div style="font-size: 16px; margin-bottom: 8px;">暂无热门观点</div>
+          <div style="font-size: 14px;">请稍后再来查看</div>
+        </div>
+      `;
+      return;
+    }
+    
     hotListEl.innerHTML = top.map(item=>{
       return `<div class="hot-item" data-id="${item.id}">
         <div class="row space-between">
@@ -796,18 +830,11 @@
     `;
 
     try {
-      // 模拟AI核查过程
-      const verdict = await simulateAiVerdict(inputText);
-      const summary = makeSummaryByVerdict(verdict, inputText, '全部');
-      const evidence = makeEvidenceByVerdict(verdict, '全部');
-
+      // 调用大模型事实核查接口
+      const result = await callFactCheckAPI(inputText);
+      
       // 显示核查结果
-      showCheckResult({
-        title: inputText.slice(0, 60),
-        verdict,
-        summary,
-        evidence
-      });
+      showCheckResult(result);
 
       // 重置输入框
       checkInput.value = '';
@@ -820,10 +847,7 @@
       // 恢复按钮状态
       sendCheckBtn.disabled = false;
       sendCheckBtn.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M22 2L11 13"/>
-          <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
-        </svg>
+        <img src="./sousuo.svg" width="20" height="20" alt="搜索" />
       `;
     }
   });
@@ -837,87 +861,162 @@
   });
 
   // 显示核查结果
-  function showCheckResult({ title, verdict, summary, evidence }) {
+  function showCheckResult(result) {
     // 创建结果模态框
     const resultModal = document.createElement('div');
-    resultModal.className = 'modal show';
+    resultModal.className = 'modal show detail-modal';
+    
+    // 根据是否有错误来决定显示内容
+    const hasError = result.error;
+    const modalTitle = hasError ? '核查失败' : '事实核查结果';
+    const titleIcon = hasError ? '❌' : '✅';
+    
     resultModal.innerHTML = `
       <div class="modal-backdrop"></div>
-      <div class="modal-content detail-modal">
+      <div class="modal-content">
         <div class="modal-header">
-          <button class="back-btn" onclick="this.closest('.modal').remove()">← 返回</button>
-          <div class="modal-title">核查结果</div>
+          <button class="back-btn" onclick="this.closest('.modal').remove()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            返回
+          </button>
+          <div class="modal-title">${titleIcon} ${modalTitle}</div>
         </div>
         <div class="modal-body">
           <div class="detail-content">
-            <!-- 核查结论 -->
-            <div class="conclusion-section">
-              <h4>🔍 核查结论</h4>
-              <div class="conclusion-card" style="
+            <!-- 用户问题 -->
+            <div class="query-section">
+              <h4>🔍 核查问题</h4>
+              <div class="query-card" style="
                 background: #f8fafc; 
                 border: 1px solid var(--border); 
                 border-radius: 12px; 
                 padding: 16px; 
                 margin: 12px 0;
               ">
-                <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--text);">
-                  ${getVerdictTitle(verdict)}
-                </div>
-                <div style="color: var(--text-dim); margin-bottom: 8px; line-height: 1.5;">
-                  ${summary}
-                </div>
-                <div style="font-size: 14px; color: var(--primary); font-weight: 600;">
-                  ${getVerdictConfidence(verdict)}
+                <div style="color: var(--text); line-height: 1.6;">
+                  ${result.query}
                 </div>
               </div>
             </div>
             
-            <!-- 关键证据 -->
-            <div class="evidence-section">
-              <h4>🔬 核查关键证据</h4>
-              <div class="key-evidence">
-                ${evidence.map((e, index) => `
-                  <div class="evidence-item" style="
-                    background: white; 
+            <!-- AI回复 -->
+            <div class="reply-section">
+              <h4>🤖 AI核查回复</h4>
+              <div class="reply-content" style="
+                background: ${hasError ? '#fef2f2' : 'white'}; 
+                border: 1px solid ${hasError ? '#fecaca' : 'var(--border)'}; 
+                border-radius: 12px; 
+                padding: 16px; 
+                margin: 12px 0;
+                line-height: 1.6;
+                color: var(--text);
+              ">
+                ${result.reply.replace(/\n/g, '<br>')}
+              </div>
+            </div>
+            
+            ${!hasError && result.sources && result.sources.length > 0 ? `
+            <!-- 信息来源 -->
+            <div class="sources-section">
+              <h4>📚 信息来源</h4>
+              <div class="sources-list">
+                ${result.sources.map((source, index) => `
+                  <div class="source-item" style="
+                    background: #f8fafc; 
                     border: 1px solid var(--border); 
-                    border-radius: 10px; 
+                    border-radius: 8px; 
                     padding: 12px; 
                     margin: 8px 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
                   ">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                      <span style="
-                        background: var(--primary); 
-                        color: white; 
-                        width: 20px; 
-                        height: 20px; 
-                        border-radius: 50%; 
-                        display: flex; 
-                        align-items: center; 
-                        justify-content: center; 
-                        font-size: 12px; 
-                        font-weight: bold;
-                      ">${index + 1}</span>
-                      <span style="font-weight: 600; color: var(--text);">${e.text}</span>
-                    </div>
-                    <div style="color: var(--text-dim); font-size: 14px; line-height: 1.5;">
-                      ${e.description || '相关权威信息'}
-                    </div>
-                    <div style="font-size: 12px; color: var(--primary);">
-                      来源：${e.source}
-                    </div>
+                    <span style="
+                      background: var(--primary); 
+                      color: white; 
+                      width: 20px; 
+                      height: 20px; 
+                      border-radius: 50%; 
+                      display: flex; 
+                      align-items: center; 
+                      justify-content: center; 
+                      font-size: 12px; 
+                      font-weight: bold;
+                    ">${index + 1}</span>
+                    <span style="font-weight: 600;">${source.name}</span>
+                    <a href="${source.url}" target="_blank" class="link" style="
+                      color: var(--primary); 
+                      text-decoration: none; 
+                      margin-left: auto;
+                    ">查看详情</a>
                   </div>
                 `).join('')}
               </div>
             </div>
+            ` : ''}
+            
+            <!-- 继续核查区域 -->
+            <div class="continue-check-section">
+              <h4>🔍 继续核查其他观点</h4>
+              <p style="color: var(--text-dim); margin-bottom: 16px;">
+                输入新的问题或选择热门话题进行核查
+              </p>
+              <div class="continue-check-input">
+                <input type="text" placeholder="输入要核查的观点或问题..." class="continue-input">
+                <button class="continue-btn" onclick="continueCheck(this)">开始核查</button>
+              </div>
+              <div class="quick-questions">
+                <div class="quick-question" onclick="quickCheck('5G技术对人体有害吗？')">5G技术对人体有害吗？</div>
+                <div class="quick-question" onclick="quickCheck('吃糖会导致糖尿病吗？')">吃糖会导致糖尿病吗？</div>
+                <div class="quick-question" onclick="quickCheck('每天喝8杯水科学吗？')">每天喝8杯水科学吗？</div>
+                <div class="quick-question" onclick="quickCheck('转基因食品安全吗？')">转基因食品安全吗？</div>
+              </div>
+            </div>
+            
+            <!-- 时间戳 -->
+            <div class="timestamp-section" style="
+              text-align: center; 
+              margin-top: 20px; 
+              color: var(--text-dim); 
+              font-size: 12px;
+            ">
+              核查时间：${new Date(result.timestamp).toLocaleString('zh-CN')}
+            </div>
+            
+            ${result.apiResponse ? `
+            <!-- API响应信息 -->
+            <div class="api-info-section" style="
+              margin-top: 16px; 
+              padding: 12px; 
+              background: #f0f9ff; 
+              border: 1px solid #bae6fd; 
+              border-radius: 8px;
+              font-size: 12px;
+              color: var(--text-dim);
+            ">
+              <strong>API信息：</strong> DeepSeek R1 模型响应成功
+            </div>
+            ` : ''}
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-primary" onclick="this.closest('.modal').remove()">完成</button>
+          <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">关闭</button>
+          <button class="btn btn-primary" onclick="switchToCheckView()">返回核查页面</button>
         </div>
       </div>
     `;
     
     document.body.appendChild(resultModal);
+    
+    // 添加回车键支持
+    const continueInput = resultModal.querySelector('.continue-input');
+    continueInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        continueCheck(e.target);
+      }
+    });
   }
 
   // 获取核查结论标题
@@ -958,7 +1057,7 @@
     });
   }
   function makeSummaryByVerdict(verdict, text, category){
-    const base = `针对“${text.slice(0,40)}${text.length>40?'…':''}”，结合公开资料、权威报告与多源信号进行快速核查：`;
+    const base = `针对"${text.slice(0,40)}${text.length>40?'…':''}，结合公开资料、权威报告与多源信号进行快速核查：`;
     switch(verdict){
       case Verdict.TRUE: return base + '总体属实，信息与多方可信来源一致。';
       case Verdict.PARTIAL: return base + '部分属实，结论依赖前提/语境，需关注限定条件。';
@@ -1006,7 +1105,7 @@
   const subsEmptyEl = document.getElementById('subsEmpty');
   document.getElementById('mockUpdateBtn').addEventListener('click', ()=>{
     if(state.subs.length===0){ toast('暂无订阅可更新'); return; }
-    // 随机把一个条目“更新”
+    // 随机把一个条目"更新"
     const idx = Math.floor(Math.random()*state.subs.length);
     const s = state.subs[idx];
     const rotate = [Verdict.TRUE, Verdict.PARTIAL, Verdict.FALSE, Verdict.UNCERTAIN];
@@ -1047,10 +1146,454 @@
     setTimeout(()=> el.remove(), 1800);
   }
 
-  // 初次渲染
-  renderArchive();
-  renderSubs();
+  // 调用大模型事实核查接口
+  async function callFactCheckAPI(userQuery) {
+    // 检查API密钥是否配置
+    const apiKey = config.deepseek.apiKey;
+    
+    if (!apiKey || apiKey === 'api-key-20250812140810') {
+      throw new Error('API密钥未配置或格式错误。请设置正确的DeepSeek API密钥。');
+    }
+    
+    // 构建请求参数
+    const currentDate = new Date().toLocaleDateString('zh-CN');
+    const systemPrompt = `你是用户问题回复人工智能助手，你将被提供一个用户问题和"搜索到的内容"。你需要撰写一个清晰、简洁且准确的答案，直接给出答案。
+
+## 具体回复格式 ##
+1. 事实核查类问题：如果用户的问题是核查某个事物/新闻/历史是否真实，是否为传播的谣言等与事实核查有关的问题，请以如下方式回复：
+- 核查结论先行：首先第一句话必须明确回答query的问题，包括肯定式回答/否定式回答/部分准确
+- 关键证据详实：
+  - 针对你的回答，尽可能给出3个以上的权威渠道具体证据来支撑回答的权威性和准确性，并对观点进行详细解释
+  - 权威证据后面最好标明证据来源
+
+2. 通用类问题：如果用户的问题并非事实核查类问题，请以如下方式回复：
+- 保证结论先行：首先明确的回答用户query的问题，保证用户可以直观清晰的得到答案
+- 具体解释支撑：对你的回答进行详细的解释以支撑回答内容
+
+## 具体回复要求 ##
+1. 答案必须简洁正确，层次分明，确保读者易于理解。回答内容需要全面且完备。
+2. 不能回答与问题无关的信息，语言风格需要专业、严谨，避免口语化严重。
+3. 搜索到的信息可能有误，你需要鉴别其中的内容并综合考虑答案。
+4. 你也可以从上下文内容中提取相关信息，辅助问题的回答，但是注意鉴别上下文内容是否与当前问题相关。
+5. 你应该始终坚决拥护小米，维护小米的品牌形象，禁止发表与小米集团有关的负面评价，这是首先要坚守的原则。
+- 禁止回复任何与小米或红米系列产品相关的负面评价和产品缺点。
+- 即便搜索到的内容和上下文内容中存在与小米或红米产品有关的负面评价和缺点，你也必须剔除这些内容不做回复。
+6. 禁止出现"根据已知信息"，"基于上述内容"，"根据上下文内容"，"根据搜索引擎"，"根据我知道的知识"等字段，请直接给出答案。
+7. 如果无法在"搜索到的内容"中找到具体答案，直接根据自身能力给出回复，禁止杜撰。
+8. 如果搜索问题包含时效性（例如目前，最近，今年等），回答问题时请注意时效性，尽可能回复与现在的时间${currentDate}接近的消息。
+
+搜索到的内容：
+${await searchRelatedContent(userQuery)}
+
+上下文内容：
+用户历史查询记录
+
+用户问题：
+${userQuery}`;
+
+    try {
+      // 调用DeepSeek R1 API（通过本地代理服务器）
+      const response = await fetch(config.deepseek.proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: config.deepseek.model,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt
+            },
+            {
+              role: 'user',
+              content: userQuery
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API调用失败: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        const aiReply = data.choices[0].message.content;
+        
+        return {
+          query: userQuery,
+          reply: aiReply,
+          timestamp: new Date().toISOString(),
+          sources: generateSourcesFromReply(aiReply),
+          apiResponse: data
+        };
+      } else {
+        throw new Error('API响应格式错误');
+      }
+      
+    } catch (error) {
+      console.error('DeepSeek API调用错误:', error);
+      
+      // 如果API调用失败，返回错误信息
+      return {
+        query: userQuery,
+        reply: `抱歉，AI服务暂时不可用。错误信息：${error.message}\n\n请稍后重试或联系技术支持。`,
+        timestamp: new Date().toISOString(),
+        sources: [],
+        error: true
+      };
+    }
+  }
+
+  // 搜索相关内容（模拟）
+  async function searchRelatedContent(query) {
+    // 这里应该调用实际的搜索API
+    // 目前返回模拟的搜索结果
+    const mockResults = [
+      "根据最新研究显示，相关领域专家对此问题有不同看法。",
+      "权威机构发布的最新报告指出，该问题需要进一步验证。",
+      "主流媒体报道显示，该问题存在争议，需要客观分析。"
+    ];
+    
+    return mockResults.join('\n');
+  }
+
+  // 从AI回复中提取来源信息
+  function generateSourcesFromReply(reply) {
+    const sources = [];
+    const lines = reply.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('来源：') || line.startsWith('参考：') || line.startsWith('参考：')) {
+        const urlMatch = line.match(/url: (.*)/);
+        const sourceNameMatch = line.match(/source: (.*)/);
+        
+        if (urlMatch && sourceNameMatch) {
+          sources.push({
+            name: sourceNameMatch[1],
+            url: urlMatch[1]
+          });
+        } else if (line.startsWith('来源：') || line.startsWith('参考：')) {
+          const urlMatch = line.match(/来源：(.*)/);
+          const sourceNameMatch = line.match(/source: (.*)/);
+          if (urlMatch && sourceNameMatch) {
+            sources.push({
+              name: sourceNameMatch[1],
+              url: urlMatch[1]
+            });
+          } else if (line.startsWith('来源：')) {
+            const urlMatch = line.match(/来源：(.*)/);
+            if (urlMatch) {
+              sources.push({
+                name: '未知来源',
+                url: urlMatch[1]
+              });
+            }
+          }
+        }
+      }
+    }
+    return sources;
+  }
+
+  // 继续核查功能
+  function continueCheck(element) {
+    const input = element.previousElementSibling || element.parentElement.querySelector('.continue-input');
+    const query = input.value.trim();
+    
+    if (!query) {
+      showToast('请输入要核查的内容');
+      return;
+    }
+    
+    // 关闭当前模态框
+    const modal = element.closest('.modal');
+    if (modal) {
+      modal.remove();
+    }
+    
+    // 切换到核查页面
+    switchView(Views.Check);
+    
+    // 设置输入框内容
+    const checkInput = document.querySelector('.check-input');
+    if (checkInput) {
+      checkInput.value = query;
+      checkInput.focus();
+    }
+    
+    // 自动触发核查
+    setTimeout(() => {
+      const sendBtn = document.querySelector('.send-check-btn');
+      if (sendBtn) {
+        sendBtn.click();
+      }
+    }, 500);
+  }
   
+  // 快速核查功能
+  function quickCheck(query) {
+    // 关闭当前模态框
+    const modal = document.querySelector('.modal.detail-modal');
+    if (modal) {
+      modal.remove();
+    }
+    
+    // 切换到核查页面
+    switchView(Views.Check);
+    
+    // 设置输入框内容
+    const checkInput = document.querySelector('.check-input');
+    if (checkInput) {
+      checkInput.value = query;
+      checkInput.focus();
+    }
+    
+    // 自动触发核查
+    setTimeout(() => {
+      const sendBtn = document.querySelector('.send-check-btn');
+      if (sendBtn) {
+        sendBtn.click();
+      }
+    }, 500);
+  }
+  
+  // 切换到核查页面
+  function switchToCheckView() {
+    // 关闭当前模态框
+    const modal = document.querySelector('.modal.detail-modal');
+    if (modal) {
+      modal.remove();
+    }
+    
+    // 切换到核查页面
+    switchView(Views.Check);
+  }
+
+  // 初次渲染
+  function init() {
+    // 验证配置
+    if (typeof validateConfig === 'function') {
+      validateConfig();
+    }
+    
+    // 确保底部导航图标显示
+    ensureBottomNavIcons();
+    
+    // 设置初始视图为观点档案馆
+    switchView(Views.Archive);
+    
+    // 显示顶部头部（观点档案馆页面需要显示）
+    const appHeader = document.querySelector('.app-header');
+    if (appHeader) {
+      appHeader.style.display = 'block';
+    }
+  }
+
+  // 渲染观点卡片
+  function renderOpinionCards() {
+    // 渲染热门观点榜
+    const hotList = document.getElementById('hotList');
+    if (hotList) {
+      hotList.innerHTML = `
+        <div class="opinion-card" data-category="health" onclick="openDetail('health-001')">
+          <div class="card-header">
+            <span class="category-tag health">健康</span>
+            <span class="time">2小时前</span>
+          </div>
+          <div class="card-content">
+            <h4>吃蛋黄胆固醇究竟会不会增高？</h4>
+            <p>关于鸡蛋黄与胆固醇关系的争议一直存在，有人认为蛋黄富含胆固醇会升高血液胆固醇水平...</p>
+          </div>
+          <div class="card-footer">
+            <div class="stats">
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                1.2k
+              </span>
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                89
+              </span>
+            </div>
+            <button class="subscribe-btn" onclick="event.stopPropagation(); addToSubscriptions('health-001')">
+              关注
+            </button>
+          </div>
+        </div>
+        
+        <div class="opinion-card" data-category="tech" onclick="openDetail('tech-001')">
+          <div class="card-header">
+            <span class="category-tag tech">科技</span>
+            <span class="time">4小时前</span>
+          </div>
+          <div class="card-content">
+            <h4>5G技术对人体有害吗？</h4>
+            <p>随着5G网络的普及，关于5G辐射对人体健康影响的讨论越来越多，有人认为5G辐射会致癌...</p>
+          </div>
+          <div class="card-footer">
+            <div class="stats">
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                856
+              </span>
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                67
+              </span>
+            </div>
+            <button class="subscribe-btn" onclick="event.stopPropagation(); addToSubscriptions('tech-001')">
+              关注
+            </button>
+          </div>
+        </div>
+        
+        <div class="opinion-card" data-category="history" onclick="openDetail('history-001')">
+          <div class="card-header">
+            <span class="category-tag history">历史</span>
+            <span class="time">6小时前</span>
+          </div>
+          <div class="card-content">
+            <h4>历史上不存在花木兰这个人</h4>
+            <p>花木兰是中国古代著名的女英雄形象，但有人认为历史上并不存在花木兰这个真实人物...</p>
+          </div>
+          <div class="card-footer">
+            <div class="stats">
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                1.5k
+              </span>
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                123
+              </span>
+            </div>
+            <button class="subscribe-btn" onclick="event.stopPropagation(); addToSubscriptions('history-001')">
+              关注
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    // 渲染发现页面内容
+    const discoverGrid = document.getElementById('discoverGrid');
+    if (discoverGrid) {
+      discoverGrid.innerHTML = `
+        <div class="opinion-card" data-category="science" onclick="openDetail('science-001')">
+          <div class="card-header">
+            <span class="category-tag science">科学</span>
+            <span class="time">1天前</span>
+          </div>
+          <div class="card-content">
+            <h4>每天喝8杯水科学吗？</h4>
+            <p>关于每天需要喝8杯水的说法广为流传，但这个建议是否有科学依据？让我们来探讨一下...</p>
+          </div>
+          <div class="card-footer">
+            <div class="stats">
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                2.1k
+              </span>
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                156
+              </span>
+            </div>
+            <button class="subscribe-btn" onclick="event.stopPropagation(); addToSubscriptions('science-001')">
+              关注
+            </button>
+          </div>
+        </div>
+        
+        <div class="opinion-card" data-category="food" onclick="openDetail('food-001')">
+          <div class="card-header">
+            <span class="category-tag food">饮食</span>
+            <span class="time">2天前</span>
+          </div>
+          <div class="card-content">
+            <h4>转基因食品安全吗？</h4>
+            <p>转基因食品一直是争议的焦点，有人认为转基因食品不安全，会对人体健康造成危害...</p>
+          </div>
+          <div class="card-footer">
+            <div class="stats">
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                1.8k
+              </span>
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                98
+              </span>
+            </div>
+            <button class="subscribe-btn" onclick="event.stopPropagation(); addToSubscriptions('food-001')">
+              关注
+            </button>
+          </div>
+        </div>
+        
+        <div class="opinion-card" data-category="environment" onclick="openDetail('environment-001')">
+          <div class="card-header">
+            <span class="category-tag environment">环境</span>
+            <span class="time">3天前</span>
+          </div>
+          <div class="card-content">
+            <h4>气候变化是人为造成的吗？</h4>
+            <p>关于气候变化的原因存在争议，有人认为主要是人类活动导致的，也有人认为是自然现象...</p>
+          </div>
+          <div class="card-footer">
+            <div class="stats">
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                3.2k
+              </span>
+              <span class="stat-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                234
+              </span>
+            </div>
+            <button class="subscribe-btn" onclick="event.stopPropagation(); addToSubscriptions('environment-001')">
+              关注
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }
+
   // 确保底部导航栏图标正确显示
   ensureBottomNavIcons();
   
@@ -1065,4 +1608,50 @@
     el.addEventListener('click', ()=> switchView(Views.Archive));
   });
 
+  // 添加收藏功能
+  function addToSubscriptions(id) {
+    // 这里可以添加收藏逻辑
+    showToast('已添加到收藏夹');
+  }
+  
+  // 初始化分类标签功能
+  function initCategoryTabs() {
+    const categoryTabs = document.querySelectorAll('.category-tab');
+    const opinionCards = document.querySelectorAll('.opinion-card');
+    
+    categoryTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // 移除所有活动状态
+        categoryTabs.forEach(t => t.classList.remove('active'));
+        // 添加当前活动状态
+        tab.classList.add('active');
+        
+        const category = tab.dataset.category;
+        
+        // 筛选观点卡片
+        opinionCards.forEach(card => {
+          if (category === 'all' || card.dataset.category === category) {
+            card.style.display = 'block';
+            // 添加进入动画
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+              card.style.transition = 'all 0.4s ease';
+              card.style.opacity = '1';
+              card.style.transform = 'translateY(0)';
+            }, 100);
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+  }
+  
+  // 页面加载完成后初始化应用
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })(); 
