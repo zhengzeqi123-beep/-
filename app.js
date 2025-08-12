@@ -1007,7 +1007,7 @@
               font-size: 12px;
               color: var(--text-dim);
             ">
-              <strong>API信息：</strong> DeepSeek R1 模型响应成功
+              <strong>API信息：</strong> 方舟 Doubao 模型响应成功
             </div>
             ` : ''}
           </div>
@@ -1157,16 +1157,13 @@
     setTimeout(()=> el.remove(), 1800);
   }
 
-  // 调用大模型事实核查接口
+  // 调用大模型事实核查接口（直接调用方舟 Ark Chat Completions）
   async function callFactCheckAPI(userQuery) {
-    // 检查API密钥是否配置
-    const apiKey = config.deepseek.apiKey;
-    
-    if (!apiKey || apiKey === 'api-key-20250812140810') {
-      throw new Error('API密钥未配置或格式错误。请设置正确的DeepSeek API密钥。');
+    const apiKey = (config.ark && config.ark.apiKey) || '';
+    if (!apiKey) {
+      throw new Error('Ark API Key 未配置。请在 config.js 的 config.ark.apiKey 中设置。');
     }
-    
-    // 构建请求参数
+
     const currentDate = new Date().toLocaleDateString('zh-CN');
     const systemPrompt = `你是用户问题回复人工智能助手，你将被提供一个用户问题和"搜索到的内容"。你需要撰写一个清晰、简洁且准确的答案，直接给出答案。
 
@@ -1186,9 +1183,6 @@
 2. 不能回答与问题无关的信息，语言风格需要专业、严谨，避免口语化严重。
 3. 搜索到的信息可能有误，你需要鉴别其中的内容并综合考虑答案。
 4. 你也可以从上下文内容中提取相关信息，辅助问题的回答，但是注意鉴别上下文内容是否与当前问题相关。
-5. 你应该始终坚决拥护小米，维护小米的品牌形象，禁止发表与小米集团有关的负面评价，这是首先要坚守的原则。
-- 禁止回复任何与小米或红米系列产品相关的负面评价和产品缺点。
-- 即便搜索到的内容和上下文内容中存在与小米或红米产品有关的负面评价和缺点，你也必须剔除这些内容不做回复。
 6. 禁止出现"根据已知信息"，"基于上述内容"，"根据上下文内容"，"根据搜索引擎"，"根据我知道的知识"等字段，请直接给出答案。
 7. 如果无法在"搜索到的内容"中找到具体答案，直接根据自身能力给出回复，禁止杜撰。
 8. 如果搜索问题包含时效性（例如目前，最近，今年等），回答问题时请注意时效性，尽可能回复与现在的时间${currentDate}接近的消息。
@@ -1203,52 +1197,40 @@ ${await searchRelatedContent(userQuery)}
 ${userQuery}`;
 
     try {
-      // 调用DeepSeek R1 API（通过本地代理服务器）
-      const response = await fetch(config.deepseek.proxyUrl, {
+      const response = await fetch(`${config.ark.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: config.deepseek.model,
+          model: config.ark.model,
           messages: [
-            {
-              role: 'system',
-              content: systemPrompt
-            },
-            {
-              role: 'user',
-              content: userQuery
-            }
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userQuery }
           ]
         })
       });
 
       if (!response.ok) {
-        throw new Error(`API调用失败: ${response.status} ${response.statusText}`);
+        let msg = `${response.status} ${response.statusText}`;
+        try { const err = await response.json(); msg = err.error?.message || msg; } catch (_) {}
+        throw new Error(`API调用失败: ${msg}`);
       }
 
       const data = await response.json();
-      
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        const aiReply = data.choices[0].message.content;
-        
-        return {
-          query: userQuery,
-          reply: aiReply,
-          timestamp: new Date().toISOString(),
-          sources: generateSourcesFromReply(aiReply),
-          apiResponse: data
-        };
-      } else {
-        throw new Error('API响应格式错误');
-      }
-      
+      const aiReply = data?.choices?.[0]?.message?.content || '';
+      if (!aiReply) throw new Error('API响应格式错误');
+
+      return {
+        query: userQuery,
+        reply: aiReply,
+        timestamp: new Date().toISOString(),
+        sources: generateSourcesFromReply(aiReply),
+        apiResponse: data
+      };
     } catch (error) {
-      console.error('DeepSeek API调用错误:', error);
-      
-      // 如果API调用失败，返回错误信息
+      console.error('Ark API 调用错误:', error);
       return {
         query: userQuery,
         reply: `抱歉，AI服务暂时不可用。错误信息：${error.message}\n\n请稍后重试或联系技术支持。`,
