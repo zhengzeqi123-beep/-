@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101014" />
+    <title>查个究竟｜事实核查</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 顶部栏（随页面变化） -->
+      <header class="app-header">
+        <div class="brand">
+          <div class="logo">查</div>
+          <div class="titles">
+            <div class="app-name">查个究竟</div>
+            <div class="app-sub">基于大模型 + 多源可信数据的移动端事实核查工具</div>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input id="globalSearchInput" type="search" placeholder="搜索你想核查的观点/事件…" />
+          <button id="globalSearchBtn" class="btn btn-primary">搜索</button>
+        </div>
+      </header>
+
+      <!-- 主体视图容器 -->
+      <main class="view-container">
+        <!-- 观点档案馆 -->
+        <section id="view-archive" class="view active">
+          <div class="tabs">
+            <button class="tab active" data-tab="tab-reco">推荐</button>
+            <button class="tab" data-tab="tab-discover">发现</button>
+          </div>
+          <div class="chip-group" id="categoryChips"></div>
+
+          <!-- 推荐 Tab -->
+          <div id="tab-reco" class="tab-content active">
+            <div class="section-title with-action">
+              <h3>热门观点榜</h3>
+              <button id="refreshHotBtn" class="btn btn-ghost">换一换</button>
+            </div>
+            <div id="hotList" class="hot-list"></div>
+          </div>
+
+          <!-- 发现 Tab -->
+          <div id="tab-discover" class="tab-content">
+            <div id="discoverGrid" class="card-grid"></div>
+          </div>
+        </section>
+
+        <!-- 查个究竟 -->
+        <section id="view-check" class="view">
+          <div class="section-title">
+            <h3>提交要核查的内容</h3>
+          </div>
+          <form id="checkForm" class="check-form" novalidate>
+            <label class="form-label">文本</label>
+            <textarea id="inputText" rows="4" placeholder="粘贴你看到的说法、段落或描述（可选）"></textarea>
+
+            <label class="form-label">链接</label>
+            <input id="inputLink" type="url" placeholder="粘贴网页/社交媒体链接（可选）" />
+
+            <label class="form-label">视频标题</label>
+            <input id="inputVideoTitle" type="text" placeholder="如：某视频标题或话题（可选）" />
+
+            <label class="form-label">截图</label>
+            <input id="inputImage" type="file" accept="image/*" />
+
+            <label class="form-label">话题分类</label>
+            <select id="inputCategory">
+              <option value="全部">选择分类（默认：全部）</option>
+              <option value="健康">健康</option>
+              <option value="科技">科技</option>
+              <option value="社会">社会</option>
+              <option value="娱乐">娱乐</option>
+              <option value="财经">财经</option>
+              <option value="教育">教育</option>
+              <option value="公共政策">公共政策</option>
+            </select>
+
+            <div class="row">
+              <label class="checkbox">
+                <input id="isAnonymous" type="checkbox" /> 匿名提交
+              </label>
+              <label class="checkbox">
+                <input id="followUpdates" type="checkbox" /> 关注此问题进展
+              </label>
+            </div>
+
+            <button id="submitCheckBtn" class="btn btn-primary btn-block" type="submit">提交核查</button>
+            <div id="checkHint" class="muted">系统会给出初步回复，必要时进入核查队列</div>
+          </form>
+
+          <div id="checkResult" class="check-result hidden">
+            <div class="result-header">
+              <span id="resultBadge" class="badge">结论</span>
+              <span id="resultTitle" class="result-title"></span>
+            </div>
+            <div id="resultSummary" class="result-summary"></div>
+            <div id="evidenceList" class="evidence-list"></div>
+            <div class="row space-between">
+              <button id="subscribeResultBtn" class="btn btn-secondary">关注此话题</button>
+              <button id="newCheckBtn" class="btn btn-ghost">再次核查</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 我的订阅 -->
+        <section id="view-subs" class="view">
+          <div class="section-title with-action">
+            <h3>我的订阅</h3>
+            <button id="mockUpdateBtn" class="btn btn-ghost">模拟一次更新</button>
+          </div>
+          <div id="subsList" class="subs-list"></div>
+          <div id="subsEmpty" class="empty hidden">
+            还没有订阅任何话题。去 <span class="link" data-nav="archive">观点档案馆</span> 探索一下吧～
+          </div>
+        </section>
+      </main>
+
+      <!-- 底部导航栏 -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" data-nav="archive">
+          <span class="icon icon-mask" aria-hidden="true"></span>
+          <span>观点档案馆</span>
+        </button>
+        <button class="nav-item" data-nav="check">
+          <span class="icon icon-mask-hecha" aria-hidden="true"></span>
+          <span>查个究竟</span>
+        </button>
+        <button class="nav-item" data-nav="subs">
+          <span class="icon icon-mask-dingyue" aria-hidden="true"></span>
+          <span>我的订阅</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title" id="detailTitle">观点详情</div>
+          <button id="closeModalBtn" class="icon-btn" aria-label="关闭">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div id="detailBody" class="modal-body"></div>
+        <div class="modal-footer">
+          <button id="modalSubscribeBtn" class="btn btn-primary">关注此话题</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html> 
