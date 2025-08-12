@@ -160,6 +160,17 @@
     return `<span class="badge ${cls}">${verdict}</span>`;
   }
 
+  // 安全转义文本，避免插入 HTML 破坏结构
+  function escapeHTML(input){
+    if (input == null) return '';
+    return String(input)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   // ----- 视图/导航 -----
   const navItems = document.querySelectorAll('.bottom-nav .nav-item');
   const views = {
@@ -896,7 +907,7 @@
                 margin: 12px 0;
               ">
                 <div style="color: var(--text); line-height: 1.6;">
-                  ${result.query}
+                  ${escapeHTML(result.query)}
                 </div>
               </div>
             </div>
@@ -913,7 +924,7 @@
                 line-height: 1.6;
                 color: var(--text);
               ">
-                ${result.reply.replace(/\n/g, '<br>')}
+                ${escapeHTML(result.reply).replace(/\n/g, '<br>')}
               </div>
             </div>
             

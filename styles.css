@@ -686,4 +686,15 @@ textarea,input,select{width:100%; background:#fff; color:var(--text); border:1px
   #app{max-width:480px; margin:0 auto; border-left:1px solid var(--border); border-right:1px solid var(--border)}
   .bottom-nav{left:50%; right:auto; transform:translateX(-50%); width:480px}
   .modal .modal-content{left:50%; right:auto; transform:translateX(-50%); width:480px}
+  /* 让全屏样式下的内容在大屏时与应用同宽并水平居中 */
+  .modal.detail-modal .modal-content{
+    left:50%;
+    right:auto;
+    transform:translateX(-50%);
+    width:480px;
+    height:auto;
+    top:0;
+    bottom:0;
+    max-height:100%;
+  }
 } 
