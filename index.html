@@ -54,58 +54,30 @@
 
         <!-- 查个究竟 -->
         <section id="view-check" class="view">
-          <div class="section-title">
-            <h3>提交要核查的内容</h3>
-          </div>
-          <form id="checkForm" class="check-form" novalidate>
-            <label class="form-label">文本</label>
-            <textarea id="inputText" rows="4" placeholder="粘贴你看到的说法、段落或描述（可选）"></textarea>
-
-            <label class="form-label">链接</label>
-            <input id="inputLink" type="url" placeholder="粘贴网页/社交媒体链接（可选）" />
-
-            <label class="form-label">视频标题</label>
-            <input id="inputVideoTitle" type="text" placeholder="如：某视频标题或话题（可选）" />
-
-            <label class="form-label">截图</label>
-            <input id="inputImage" type="file" accept="image/*" />
-
-            <label class="form-label">话题分类</label>
-            <select id="inputCategory">
-              <option value="全部">选择分类（默认：全部）</option>
-              <option value="健康">健康</option>
-              <option value="科技">科技</option>
-              <option value="社会">社会</option>
-              <option value="娱乐">娱乐</option>
-              <option value="财经">财经</option>
-              <option value="教育">教育</option>
-              <option value="公共政策">公共政策</option>
-            </select>
-
-            <div class="row">
-              <label class="checkbox">
-                <input id="isAnonymous" type="checkbox" /> 匿名提交
-              </label>
-              <label class="checkbox">
-                <input id="followUpdates" type="checkbox" /> 关注此问题进展
-              </label>
+          <div class="check-content">
+            <div class="check-prompt">
+              <h2>今天查点啥?</h2>
             </div>
-
-            <button id="submitCheckBtn" class="btn btn-primary btn-block" type="submit">提交核查</button>
-            <div id="checkHint" class="muted">系统会给出初步回复，必要时进入核查队列</div>
-          </form>
-
-          <div id="checkResult" class="check-result hidden">
-            <div class="result-header">
-              <span id="resultBadge" class="badge">结论</span>
-              <span id="resultTitle" class="result-title"></span>
+            <div class="check-input-container">
+              <button class="upload-btn" id="uploadFileBtn" aria-label="上传文件">
+                <img src="./lianjie.svg" width="20" height="20" alt="链接" />
+              </button>
+              <input 
+                id="checkInput" 
+                type="text" 
+                placeholder="输入你要验证的观点" 
+                class="check-input"
+              />
+              <button class="send-btn" id="sendCheckBtn" aria-label="发送">
+                <img src="./sousuo.svg" width="20" height="20" alt="搜索" />
+              </button>
             </div>
-            <div id="resultSummary" class="result-summary"></div>
-            <div id="evidenceList" class="evidence-list"></div>
-            <div class="row space-between">
-              <button id="subscribeResultBtn" class="btn btn-secondary">关注此话题</button>
-              <button id="newCheckBtn" class="btn btn-ghost">再次核查</button>
-            </div>
+            <input 
+              type="file" 
+              id="fileInput" 
+              accept="image/*,.pdf,.doc,.docx,.txt" 
+              style="display: none;"
+            />
           </div>
         </section>
 
@@ -125,15 +97,24 @@
       <!-- 底部导航栏 -->
       <nav class="bottom-nav">
         <button class="nav-item active" data-nav="archive">
-          <span class="icon icon-mask" aria-hidden="true"></span>
+          <span class="icon icon-mask" aria-hidden="true">
+            <!-- 备用内联SVG -->
+            <svg width="22" height="22" viewBox="0 0 1024 1024" fill="currentColor">
+              <path d="M198 491.77h33.41v214.81h-21.77a23.39 23.39 0 0 0 0 46.77h604.72a23.39 23.39 0 0 0 0-46.77h-21.72V491.77h33.41a23.38 23.38 0 0 0 15.21-41.15l-314-269a23.4 23.4 0 0 0-30.42 0l-314 269A23.38 23.38 0 0 0 198 491.77z m80.19 0h124.68v214.81H278.14z m296.22 0v214.81H449.64V491.77z m171.5 214.81H621.13V491.77h124.73zM512 230.22L762.79 445H261.21zM849.63 801.18H174.37a23.39 23.39 0 1 0 0 46.78h675.26a23.39 23.39 0 0 0 0-46.78z"/>
+            </svg>
+          </span>
           <span>观点档案馆</span>
         </button>
         <button class="nav-item" data-nav="check">
-          <span class="icon icon-mask-hecha" aria-hidden="true"></span>
+          <span class="icon icon-mask-hecha" aria-hidden="true">
+            <img src="./hecha.svg" width="22" height="22" alt="核查" />
+          </span>
           <span>查个究竟</span>
         </button>
         <button class="nav-item" data-nav="subs">
-          <span class="icon icon-mask-dingyue" aria-hidden="true"></span>
+          <span class="icon icon-mask-dingyue" aria-hidden="true">
+            <img src="./dingyue.svg" width="22" height="22" alt="订阅" />
+          </span>
           <span>我的订阅</span>
         </button>
       </nav>
